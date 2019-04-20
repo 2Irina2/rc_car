@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/textview_intensity"
+        android:layout_marginLeft="16dp"
+        android:textSize="16sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/slider_intensity"/>
+
+    <SeekBar
+        android:id="@+id/slider_intensity"
+        android:max="100"
+        android:progress="0"
+        android:layout_marginLeft="16dp"
+        android:layout_marginRight="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/joystickView"/>
+
+    <io.github.controlwear.virtual.joystick.android.JoystickView
+        xmlns:custom="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/joystickView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        custom:JV_buttonColor="#FF6E40"
+        custom:JV_buttonSizeRatio="15%"
+        custom:JV_borderColor="#00796B"
+        custom:JV_backgroundColor="#009688"
+        custom:JV_borderWidth="4dp"
+        custom:JV_fixedCenter="false"
+        android:layout_above="@id/button_honk"/>
+
+    <Button
+        android:id="@+id/button_honk"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="honk"
+        android:textAllCaps="true"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:paddingTop="16dp"
+        android:layout_margin="16dp"
+        android:layout_alignParentBottom="true"/>
+
+</RelativeLayout>
