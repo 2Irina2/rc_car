@@ -1,7 +1,5 @@
 package com.example.android.carcontrol;
 
-import android.util.Log;
-
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -15,7 +13,7 @@ public class ClientConnection extends Thread implements Change {
     private String message, prevMessage;
 
 
-    ClientConnection(){
+    ClientConnection() {
         message = "";
         prevMessage = "";
     }
@@ -23,40 +21,32 @@ public class ClientConnection extends Thread implements Change {
     @Override
     public void run() {
         super.run();
-        try {
-            socket = new Socket(InetAddress.getByName(IP_ADDRESS), PORT);
-            if(socket.isConnected()){
-                Log.e(ClientConnection.class.getName(), "Socket connected");
-            } else {
-                Log.e(ClientConnection.class.getName(), "Socket failed to connect");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        DataOutputStream DOS = null;
-        try {
-            DOS = new DataOutputStream(socket.getOutputStream());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        while(socket.isConnected()){
+        DataOutputStream DOS;
+        while (true) {
             try {
-                if (DOS != null && (!prevMessage.equals(message) || message.equals("H\n"))) {
-                    DOS.flush();
-                    DOS.writeChars(message);
-                    prevMessage = message;
-                    if(message.equals("H\n")){
-                        prevMessage = "";
-                        message = "";
+                if (socket != null) {
+                    DOS = new DataOutputStream(socket.getOutputStream());
+                    if (!prevMessage.equals(message) || message.equals("H\n")) {
+                        DOS.flush();
+                        DOS.writeChars(message);
+                        prevMessage = message;
+                        if (message.equals("H\n")) {
+                            prevMessage = "";
+                            message = "";
+                        }
                     }
+                } else {
+                    socket = new Socket(InetAddress.getByName(IP_ADDRESS), PORT);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
 
-            if(Thread.interrupted()){
+            if (Thread.interrupted()) {
                 try {
-                    socket.close();
+                    if (socket != null) {
+                        socket.close();
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
