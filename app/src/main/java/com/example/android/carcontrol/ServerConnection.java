@@ -24,24 +24,32 @@ public class ServerConnection extends Thread {
         super.run();
         try {
             socket = new ServerSocket(PORT);
+            Log.e(ServerConnection.class.getName(), "Port open");
         } catch (IOException e) {
             e.printStackTrace();
         }
         while (true) {
+            Log.e(ServerConnection.class.getName(), "Keep listening");
             Socket clientSocket = null;
             try {
                 clientSocket = socket.accept();
+                Log.e(ServerConnection.class.getName(), "Accepted");
                 DataInputStream DIS = new DataInputStream(clientSocket.getInputStream());
                 String tmp;
                 StringBuilder inputLine = new StringBuilder();
-                while ((tmp = DIS.readLine()) != null) {
+                tmp = DIS.readLine();
+                while ( tmp != null && !tmp.isEmpty()) {
+                    Log.e(ServerConnection.class.getName(), tmp);
                     inputLine.append(tmp);
+                    tmp = DIS.readLine();
                 }
                 message = inputLine.toString();
+                Log.e(ServerConnection.class.getName(), "Obtained message");
                 DIS.close();
                 try {
                     Capture capture = (Capture) context;
                     capture.onReceive(message);
+                    Log.e(ServerConnection.class.getName(), "Called on receive");
                 } catch (ClassCastException e) {
                     Log.e(ServerConnection.class.getName(), "Unable to cast context to capture");
                 }
@@ -50,6 +58,7 @@ public class ServerConnection extends Thread {
             }
 
             if (Thread.interrupted()) {
+                Log.e(ServerConnection.class.getName(), "Interrupted");
                 try {
                     if (clientSocket != null) {
                         clientSocket.close();

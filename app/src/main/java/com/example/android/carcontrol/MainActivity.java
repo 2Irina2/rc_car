@@ -1,10 +1,15 @@
 package com.example.android.carcontrol;
 
-import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.SeekBar;
@@ -12,7 +17,13 @@ import android.widget.TextView;
 
 import io.github.controlwear.virtual.joystick.android.JoystickView;
 
-public class MainActivity extends Activity implements Capture {
+import static android.preference.PreferenceManager.getDefaultSharedPreferences;
+import static com.example.android.carcontrol.SettingsActivity.CLIENT_PORT_KEY;
+import static com.example.android.carcontrol.SettingsActivity.IP_KEY;
+import static com.example.android.carcontrol.SettingsActivity.SPEED_DEFAULT;
+import static com.example.android.carcontrol.SettingsActivity.SPEED_KEY;
+
+public class MainActivity extends AppCompatActivity implements Capture {
     private static final String networkSSID = "2ASUS2";
     private static final String networkPass = "I7fp3Afs";
     private WifiManager wifiManager;
@@ -22,30 +33,79 @@ public class MainActivity extends Activity implements Capture {
     private static final int MOTOR_COMMAND_MAX = 142;
     private static final int LIGHT_COMMAND_MAX = 100;
 
+    int speedRatio;
+
     TextView batteryTextView;
+    SharedPreferences.OnSharedPreferenceChangeListener speedAndConnectionListener;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         batteryTextView = findViewById(R.id.textview_battery_value);
-        batteryTextView.setText("50%");
+        batteryTextView.setText("~");
 
-        handleConnection();
+        initSharedPreferences();
+        handleClientConnection();
+        handleServerConnection();
 
         handleJoyStick();
         handleHonk();
         handleLights();
     }
 
-    private void handleConnection() {
-        turnOnWifi(getApplicationContext());
-        configureWifi(getApplicationContext());
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        getDefaultSharedPreferences(this).unregisterOnSharedPreferenceChangeListener(speedAndConnectionListener);
+    }
 
-        ClientConnection conn = new ClientConnection();
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.action_bar_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        if (id == R.id.button_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void initSharedPreferences() {
+        SharedPreferences sharedPreferences = getDefaultSharedPreferences(this);
+        String speed = sharedPreferences.getString(SPEED_KEY, SPEED_DEFAULT);
+        getSpeedRatio(speed);
+        speedAndConnectionListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+            @Override
+            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                if (key.equals(SPEED_KEY)) {
+                    String speed = sharedPreferences.getString(key, SPEED_DEFAULT);
+                    getSpeedRatio(speed);
+                }
+                if (key.equals(CLIENT_PORT_KEY) || key.equals(IP_KEY)) {
+                    handleClientConnection();
+                }
+            }
+        };
+        sharedPreferences.registerOnSharedPreferenceChangeListener(speedAndConnectionListener);
+    }
+
+    private void handleClientConnection() {
+        turnOnWifi(getApplicationContext());
+        configureWifi();
+
+        ClientConnection conn = new ClientConnection(getApplicationContext());
         commandChange = conn;
         conn.start();
+    }
 
+    private void handleServerConnection() {
         ServerConnection serverConnection = new ServerConnection(this);
         serverConnection.start();
     }
@@ -58,7 +118,7 @@ public class MainActivity extends Activity implements Capture {
         }
     }
 
-    private void configureWifi(Context context) {
+    private void configureWifi() {
         WifiConfiguration conf = new WifiConfiguration();
         conf.SSID = "\"" + networkSSID + "\"";
         conf.preSharedKey = "\"" + networkPass + "\"";
@@ -91,8 +151,8 @@ public class MainActivity extends Activity implements Capture {
         int commandX = (int) Math.round(strength * Math.cos(Math.toRadians(angle)));
         int commandY = (int) Math.round(strength * Math.sin(Math.toRadians(angle)));
 
-        double rawLeft = (commandY + commandX) * MAX_PWM / MOTOR_COMMAND_MAX;
-        double rawRight = (commandY - commandX) * MAX_PWM / MOTOR_COMMAND_MAX;
+        double rawLeft = (commandY + commandX) * MAX_PWM / MOTOR_COMMAND_MAX / speedRatio;
+        double rawRight = (commandY - commandX) * MAX_PWM / MOTOR_COMMAND_MAX / speedRatio;
 
         return "L:" + String.valueOf(Math.round(rawLeft)) + ";" +
                 "R:" + String.valueOf(Math.round(rawRight)) + "\n";
@@ -140,12 +200,27 @@ public class MainActivity extends Activity implements Capture {
         return "H\n";
     }
 
+    private void getSpeedRatio(String speed) {
+        switch (speed) {
+            case "SLOW":
+                speedRatio = 3;
+                break;
+            case "MEDIUM":
+                speedRatio = 2;
+                break;
+            case "FAST":
+                speedRatio = 1;
+                break;
+        }
+    }
+
     @Override
     public void onReceive(final String command) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 batteryTextView.setText(command + "%");
+                Log.e(MainActivity.class.getName(), "Updated ui");
             }
         });
     }
