@@ -24,8 +24,8 @@ import static com.example.android.carcontrol.SettingsActivity.SPEED_DEFAULT;
 import static com.example.android.carcontrol.SettingsActivity.SPEED_KEY;
 
 public class MainActivity extends AppCompatActivity implements Capture {
-    private static final String networkSSID = "2ASUS2";
-    private static final String networkPass = "I7fp3Afs";
+    private static final String networkSSID = "esp_user";
+    private static final String networkPass = "esp_pass";
     private WifiManager wifiManager;
     private Change commandChange;
 
